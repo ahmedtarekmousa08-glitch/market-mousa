@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(){ return request.auth != null && request.auth.token.email == 'ضع_ايميلك_هنا@gmail.com'; }
+    match /products/{id}  { allow read: if true; allow write: if owner(); }
+    match /settings/{id}  { allow read: if true; allow write: if owner(); }
+    match /users/{uid}    { allow read, write: if request.auth != null && request.auth.uid == uid; }
+    match /orders/{id} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if owner() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow update, delete: if owner();
+    }
+  }
+}

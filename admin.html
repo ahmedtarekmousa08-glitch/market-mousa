@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سوبر ماركت موسى - الإدارة</title><link rel="icon" href="logo.png"><link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+</head><body>
+<header><img id="logo" src="logo.png" alt=""><h1>إدارة سوبر ماركت موسى</h1><button class="sec" id="out" style="display:none" onclick="auth.signOut()">خروج</button></header>
+<div class="tabs" id="tabs"></div><main id="app"></main>
+<script src="common.js"></script><script src="config.js"></script>
+<script>
+const auth=firebase.auth();let view="orders",products=[],orders=[],cfg={fee:0,feeOn:false},unsubs=[];
+auth.onAuthStateChanged(u=>{unsubs.forEach(f=>f());unsubs=[];
+ if(!u||u.email!==OWNER_EMAIL){$("out").style.display=u?"":"none";$("tabs").innerHTML="";$("app").innerHTML=`<div class="box"><b>تسجيل دخول صاحب المحل</b>${u?'<div class="mu">الحساب ده مش صاحب المحل.</div>':""}<input id="em" type="email" placeholder="الإيميل"><input id="pw" type="password" placeholder="كلمة السر"><button onclick="login()">دخول</button></div>`;return}
+ $("out").style.display="";
+ unsubs.push(db.collection("products").orderBy("name").onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()}));if(view==="products")render()}));
+ unsubs.push(db.collection("orders").orderBy("at","desc").onSnapshot(s=>{orders=s.docs.map(d=>({id:d.id,...d.data()}));if(view==="orders")render()}));
+ unsubs.push(db.doc("settings/main").onSnapshot(s=>{cfg={...cfg,...(s.data()||{})};if(cfg.logo)$("logo").outerHTML='<img id="logo" src="'+cfg.logo+'" alt="">';if(view==="settings")render()}));
+ render()});
+async function login(){try{await auth.signInWithEmailAndPassword($("em").value.trim(),$("pw").value)}catch(e){alert("الإيميل أو كلمة السر غلط")}}
+function show(v){view=v;render()}
+function render(){$("tabs").innerHTML=[["orders","الطلبات"],["products","المنتجات"],["settings","الإعدادات"]].map(([k,l])=>`<button class="${view===k?"on":""}" onclick="show('${k}')">${l}</button>`).join("");
+ $("app").innerHTML=view==="orders"?ordersV():view==="products"?prodV():setV()}
+function nextBtn(o){const m={new:["prep","ابدأ التجهيز"],prep:o.mode==="delivery"?["out","خرج للتوصيل"]:["ready","جاهز للاستلام"],out:["done","تم التسليم"],ready:["done","تم التسليم"]}[o.status];return m?`<button onclick="setSt('${o.id}','${m[0]}')">${m[1]}</button>`:""}
+function ordersV(){if(!orders.length)return'<div class="msg">لسه مفيش طلبات</div>';
+ return orders.map(o=>`<div class="box"><div class="row"><b>${esc(o.name)} · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></b><span class="tag">${ST[o.status]}</span></div><div class="mu">${o.mode==="delivery"?"🛵 توصيل: "+esc(o.address):"🏪 استلام من الفرع"} · ${new Date(o.at).toLocaleString("ar-EG")}</div>${(o.items||[]).map(i=>`<div class="row"><span>${esc(i.name)} × ${fmt(i.n)}</span><span>${fmt(i.price*i.n)} ج</span></div>`).join("")}${o.fee?`<div class="row"><span>رسوم التوصيل</span><span>${fmt(o.fee)} ج</span></div>`:""}${o.note?`<div class="mu">ملاحظة: ${esc(o.note)}</div>`:""}<div class="row"><b>الإجمالي ${fmt(o.total)} ج</b>${nextBtn(o)}</div></div>`).join("")}
+async function setSt(id,s){const o=orders.find(x=>x.id===id);if(!o)return;const b=db.batch();
+ if(o.status==="new")(o.items||[]).forEach(i=>b.update(db.doc("products/"+i.id),{qty:firebase.firestore.FieldValue.increment(-i.n)}));
+ b.update(db.doc("orders/"+id),{status:s});try{await b.commit()}catch(e){alert("حصلت مشكلة (ممكن منتج اتحذف). حاول تاني")}}
+function prodV(){return`<div class="box"><h3 style="margin:0">إضافة منتج</h3><input id="pn" placeholder="اسم المنتج"><select id="pc">${CATS.map(c=>`<option>${c}</option>`).join("")}</select><div class="row"><input id="pp" type="number" min="0" step="any" placeholder="السعر (ج)"><input id="pq" type="number" min="0" placeholder="الكمية المتاحة"></div><input id="po" type="number" min="0" step="any" placeholder="السعر قبل الخصم (للعروض فقط - اختياري)"><input id="pi" type="file" accept="image/*"><button onclick="addP()">حفظ المنتج</button></div>
+ <div class="box"><h3 style="margin:0">المنتجات (${fmt(products.length)})</h3>${products.map(p=>`<div class="row" style="border-top:1px solid var(--bd);padding-top:8px">${p.img?`<img src="${p.img}" style="width:48px;height:48px;border-radius:8px;object-fit:cover" alt="">`:'<div class="ph" style="width:48px;height:48px;font-size:20px;border-radius:8px">🛒</div>'}<div style="flex:1"><b>${esc(p.name)}</b><div class="mu">${esc(p.cat||"")} · ${fmt(p.price)} ج${p.oldPrice>p.price?" 🔥 عرض (كان "+fmt(p.oldPrice)+")":""} · ${fmt(p.qty)} متاح</div></div><button class="sec" onclick="editP('${p.id}')">تعديل</button><button class="dng" onclick="delP('${p.id}')">حذف</button></div>`).join("")}</div>`}
+async function addP(){const n=$("pn").value.trim(),pr=parseFloat($("pp").value),q=parseInt($("pq").value);if(!n||isNaN(pr)||isNaN(q))return alert("املا الاسم والسعر والكمية");
+ const f=$("pi").files[0];try{await db.collection("products").add({name:n,cat:$("pc").value,price:pr,qty:q,img:f?await resize(f,600):"",oldPrice:parseFloat($("po").value)||0});$("pn").value=$("pp").value=$("pq").value=$("pi").value=$("po").value=""}catch(e){alert("حصلت مشكلة في الحفظ")}}
+async function editP(id){const p=products.find(x=>x.id===id),pr=prompt("السعر",p.price);if(pr===null)return;const q=prompt("الكمية المتاحة",p.qty);if(q===null)return;const o=prompt("السعر قبل الخصم (سيبه فاضي لو مفيش عرض)",p.oldPrice||"");if(o===null)return;
+ if(isNaN(parseFloat(pr))||isNaN(parseInt(q)))return;await db.doc("products/"+id).update({price:parseFloat(pr),qty:parseInt(q),oldPrice:parseFloat(o)||0})}
+async function delP(id){if(confirm("متأكد من حذف المنتج؟"))await db.doc("products/"+id).delete()}
+function setV(){return`<div class="box"><h3 style="margin:0">رسوم التوصيل</h3><label class="row"><span>تفعيل رسوم التوصيل</span><input type="checkbox" id="fo" style="width:auto" ${cfg.feeOn?"checked":""}></label><input id="fv" type="number" min="0" placeholder="قيمة الرسوم (ج)" value="${cfg.fee||""}"><button class="sec" onclick="saveFee()">حفظ</button></div>
+ <div class="box"><h3 style="margin:0">إعلان صفحة العروض</h3><textarea id="on" rows="2" placeholder="مثال: عروض الأسبوع لحد الجمعة">${esc(cfg.offersNote||"")}</textarea><button class="sec" onclick="saveNote()">حفظ</button></div><div class="box"><h3 style="margin:0">لوجو التطبيق</h3><input id="lg" type="file" accept="image/*"><button class="sec" onclick="upLogo()">رفع اللوجو</button></div>`}
+async function saveNote(){await db.doc("settings/main").set({offersNote:$("on").value.trim()},{merge:true});alert("تم الحفظ")}
+async function saveFee(){await db.doc("settings/main").set({feeOn:$("fo").checked,fee:parseFloat($("fv").value)||0},{merge:true});alert("تم الحفظ")}
+async function upLogo(){const f=$("lg").files[0];if(!f)return;await db.doc("settings/main").set({logo:await resize(f,200)},{merge:true})}
+</script></body></html>
