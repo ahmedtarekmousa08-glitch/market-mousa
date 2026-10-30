@@ -1,3 +1,4 @@
+const AREAS=["الشهداء","ميت شهاله","عشما","كفر عشما","سلامون بحرى","سلامون قبلي","دنشواي","ابو كلس","دناصور","زاويه البقلي","ساحل الحوابر","شمياطس","سرسنا","كمشيش","عزبه علي بيه راضي","شبين الكوم"];
 function authV(){
  if(am==="login")return`<div class="box"><h3 style="margin:0">تسجيل الدخول</h3>
  <input id="ph" type="tel" inputmode="tel" placeholder="رقم التليفون" value="${esc(aph)}">
@@ -6,12 +7,13 @@ function authV(){
  <button class="sec" onclick="am='register';render()">إنشاء حساب جديد</button>
  <div class="mu" style="text-align:center">لو نسيت كلمة المرور كلّم المحل</div></div>`;
  return`<div class="box"><h3 style="margin:0">تسجيل مستخدم جديد</h3>
+ <div class="mu">المحافظة: المنوفية - المركز: الشهداء</div>
  <input id="an" placeholder="الاسم بالكامل *" value="${esc(an)}">
  <input id="ph" type="tel" inputmode="tel" placeholder="رقم التليفون * (مثال: 01011750300)" value="${esc(aph)}">
  <input id="pw" type="password" placeholder="كلمة المرور * (6 أحرف أو أرقام على الأقل)">
  <input id="pw2" type="password" placeholder="أعد كتابة كلمة المرور *">
+ <select id="rz"><option value="">اختار المنطقة *</option>${AREAS.map(a=>`<option>${a}</option>`).join("")}</select>
  <div class="row"><input id="ad" placeholder="العنوان بالتفصيل (الشارع) *" style="flex:1"><button class="sec" type="button" onclick="getLoc()">📍</button></div>
- <select id="rz"><option value="">اختار المنطقة *</option><option>محافظة المنوفية - مركز الشهداء</option></select>
  <input id="fl" placeholder="الدور (اختياري)">
  <input id="ap" placeholder="رقم الشقة *">
  <input id="mk" placeholder="علامة مميزة * (مثال: بجوار الصيدلية)">
@@ -33,11 +35,11 @@ async function doRegister(){
  if(p.replace(/\D/g,"").length<10)return alert("اكتب رقم تليفون صحيح");
  if(pw.length<6)return alert("كلمة المرور لازم تكون 6 حروف أو أرقام على الأقل");
  if(pw!==pw2)return alert("كلمتين المرور مش زي بعض");
- if(!ad)return alert("اكتب العنوان");
  if(!rz)return alert("اختار المنطقة");
+ if(!ad)return alert("اكتب العنوان");
  if(!ap)return alert("اكتب رقم الشقة");
  if(!mk)return alert("اكتب علامة مميزة تساعد المندوب يوصّل");
- const addr=`${rz} - ${ad} - الدور: ${fl||"-"} - الشقة: ${ap} - علامة: ${mk}`;
+ const addr=`المنوفية - الشهداء - ${rz} - ${ad} - الدور: ${fl||"-"} - الشقة: ${ap} - علامة: ${mk}`;
  $("reg").disabled=true;
  try{
   const c=await auth.createUserWithEmailAndPassword(fake(p),pw);
