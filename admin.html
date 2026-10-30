@@ -111,3 +111,4 @@ async function delSecImg(k){
  try{await db.doc("settings/main").update({["secImgs."+k]:firebase.firestore.FieldValue.delete()})}catch(e){alert("حصلت مشكلة")}
 }
 </script></body></html>
+
