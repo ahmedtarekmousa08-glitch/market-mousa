@@ -14,6 +14,7 @@ const auth=firebase.auth();
 let view="orders",logged=false,products=[],orders=[],cfg={fee:0,feeOn:false},unsubs=[];
 
 function catOptions(sel){return SECTIONS.map(s=>`<optgroup label="${esc(s.name)}">`+s.subs.map(c=>`<option${c===sel?" selected":""}>${esc(c)}</option>`).join("")+`</optgroup>`).join("")}
+function adTargetOptions(){return `<option value="">بدون (إعلان فقط)</option>`+SECTIONS.map(s=>`<optgroup label="${esc(s.name)}"><option value="sec:${esc(s.name)}">كل ${esc(s.name)}</option>`+s.subs.map(c=>`<option value="sub:${esc(c)}">${esc(c)}</option>`).join("")+`</optgroup>`).join("")}
 
 function loginV(u){return`<div class="box"><b>تسجيل دخول صاحب المحل</b>${u?'<div class="mu">الحساب ده مش حساب صاحب المحل.</div>':""}<input id="em" type="email" placeholder="الإيميل"><input id="pw" type="password" placeholder="كلمة السر"><button onclick="doLogin()">دخول</button></div>`}
 async function doLogin(){try{await auth.signInWithEmailAndPassword($("em").value.trim(),$("pw").value)}catch(e){alert("الإيميل أو كلمة السر غلط")}}
@@ -87,12 +88,18 @@ function secBlock(s){
  return`<div style="border-top:1px solid var(--bd);padding-top:8px"><b>${esc(s.name)}</b>${imgRow(s.name)}${s.subs.map(c=>`<div style="padding-inline-start:12px">${imgRow(c)}</div>`).join("")}</div>`;
 }
 
+function adLabel(t){
+ if(!t)return"بدون (إعلان فقط)";
+ if(t.startsWith("sec:"))return"يروح لقسم: "+t.slice(4);
+ if(t.startsWith("sub:"))return"يروح لقسم فرعي: "+t.slice(4);
+ return t;
+}
 function adRow(a,i){
- return`<div class="row" style="border-top:1px solid var(--bd);padding-top:8px">${a.img?`<img src="${a.img}" style="width:64px;height:40px;border-radius:6px;object-fit:cover" alt="">`:'<div class="ph" style="width:64px;height:40px;border-radius:6px">📢</div>'}<div style="flex:1"><b>${esc(a.title||"")}</b><div class="mu">${esc(a.text||"")}${a.link?" · "+esc(a.link):""}</div></div><button class="dng" onclick="delAd(${i})">حذف</button></div>`;
+ return`<div class="row" style="border-top:1px solid var(--bd);padding-top:8px">${a.img?`<img src="${a.img}" style="width:64px;height:40px;border-radius:6px;object-fit:cover" alt="">`:'<div class="ph" style="width:64px;height:40px;border-radius:6px">📢</div>'}<div style="flex:1"><b>${esc(a.title||"")}</b><div class="mu">${esc(a.text||"")} · ${esc(adLabel(a.target))}</div></div><button class="dng" onclick="delAd(${i})">حذف</button></div>`;
 }
 function adsV(){
  const ads=cfg.ads||[];
- return`<div class="box"><h3 style="margin:0">إضافة إعلان</h3><div class="mu">الإعلان بيظهر للعميل تحت خانة البحث، ويقدر يضغط عليه لو فيه رابط (منتج أو عرض أو مجلة)</div><input id="at" placeholder="عنوان الإعلان *"><textarea id="ax" rows="2" placeholder="نص الإعلان (اختياري)"></textarea><input id="al" placeholder="رابط (اختياري - مثال: رابط مجلة أو صفحة)"><input id="ai" type="file" accept="image/*"><button onclick="addAd()">نشر الإعلان</button></div>
+ return`<div class="box"><h3 style="margin:0">إضافة إعلان</h3><div class="mu">الإعلان بيظهر للعميل تحت خانة البحث. لما يضغط عليه يروح للقسم اللي تختاره.</div><input id="at" placeholder="عنوان الإعلان *"><textarea id="ax" rows="2" placeholder="نص الإعلان (اختياري)"></textarea><label class="mu">عند الضغط على الإعلان يروح لـ:</label><select id="atg">${adTargetOptions()}</select><input id="ai" type="file" accept="image/*"><button onclick="addAd()">نشر الإعلان</button></div>
  <div class="box"><h3 style="margin:0">الإعلانات الحالية (${ads.length})</h3>${ads.length?ads.map(adRow).join(""):'<div class="mu">مفيش إعلانات</div>'}</div>`;
 }
 async function addAd(){
@@ -100,7 +107,7 @@ async function addAd(){
  const f=$("ai").files[0];
  try{
   const img=f?await resize(f,700):"";
-  const ad={title:t,text:$("ax").value.trim(),link:$("al").value.trim(),img};
+  const ad={title:t,text:$("ax").value.trim(),target:$("atg").value,img};
   await db.doc("settings/main").set({ads:[...(cfg.ads||[]),ad]},{merge:true});
   alert("تم نشر الإعلان");
  }catch(e){alert("حصلت مشكلة في النشر")}
@@ -136,3 +143,4 @@ async function delSecImg(k){
  try{await db.doc("settings/main").update({["secImgs."+k]:firebase.firestore.FieldValue.delete()})}catch(e){alert("حصلت مشكلة")}
 }
 </script></body></html>
+
