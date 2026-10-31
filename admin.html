@@ -87,9 +87,34 @@ function secBlock(s){
  return`<div style="border-top:1px solid var(--bd);padding-top:8px"><b>${esc(s.name)}</b>${imgRow(s.name)}${s.subs.map(c=>`<div style="padding-inline-start:12px">${imgRow(c)}</div>`).join("")}</div>`;
 }
 
+function adRow(a,i){
+ return`<div class="row" style="border-top:1px solid var(--bd);padding-top:8px">${a.img?`<img src="${a.img}" style="width:64px;height:40px;border-radius:6px;object-fit:cover" alt="">`:'<div class="ph" style="width:64px;height:40px;border-radius:6px">📢</div>'}<div style="flex:1"><b>${esc(a.title||"")}</b><div class="mu">${esc(a.text||"")}${a.link?" · "+esc(a.link):""}</div></div><button class="dng" onclick="delAd(${i})">حذف</button></div>`;
+}
+function adsV(){
+ const ads=cfg.ads||[];
+ return`<div class="box"><h3 style="margin:0">إضافة إعلان</h3><div class="mu">الإعلان بيظهر للعميل تحت خانة البحث، ويقدر يضغط عليه لو فيه رابط (منتج أو عرض أو مجلة)</div><input id="at" placeholder="عنوان الإعلان *"><textarea id="ax" rows="2" placeholder="نص الإعلان (اختياري)"></textarea><input id="al" placeholder="رابط (اختياري - مثال: رابط مجلة أو صفحة)"><input id="ai" type="file" accept="image/*"><button onclick="addAd()">نشر الإعلان</button></div>
+ <div class="box"><h3 style="margin:0">الإعلانات الحالية (${ads.length})</h3>${ads.length?ads.map(adRow).join(""):'<div class="mu">مفيش إعلانات</div>'}</div>`;
+}
+async function addAd(){
+ const t=$("at").value.trim();if(!t)return alert("اكتب عنوان الإعلان");
+ const f=$("ai").files[0];
+ try{
+  const img=f?await resize(f,700):"";
+  const ad={title:t,text:$("ax").value.trim(),link:$("al").value.trim(),img};
+  await db.doc("settings/main").set({ads:[...(cfg.ads||[]),ad]},{merge:true});
+  alert("تم نشر الإعلان");
+ }catch(e){alert("حصلت مشكلة في النشر")}
+}
+async function delAd(i){
+ if(!confirm("تحذف الإعلان ده؟"))return;
+ const ads=(cfg.ads||[]).filter((_,k)=>k!==i);
+ await db.doc("settings/main").set({ads},{merge:true});
+}
+
 function setV(){
  return`<div class="box"><h3 style="margin:0">رسوم التوصيل</h3><label class="row"><span>تفعيل رسوم التوصيل</span><input type="checkbox" id="fo" style="width:auto" ${cfg.feeOn?"checked":""}></label><input id="fv" type="number" min="0" placeholder="قيمة الرسوم (ج)" value="${cfg.fee||""}"><button class="sec" onclick="saveFee()">حفظ</button></div>
  <div class="box"><h3 style="margin:0">إعلان صفحة العروض</h3><textarea id="on" rows="2">${esc(cfg.offersNote||"")}</textarea><button class="sec" onclick="saveNote()">حفظ</button></div>
+ ${adsV()}
  <div class="box"><h3 style="margin:0">لوجو التطبيق</h3><input id="lg" type="file" accept="image/*"><button class="sec" onclick="upLogo()">رفع اللوجو</button></div>
  <div class="box"><h3 style="margin:0">صور الأقسام</h3><div class="mu">ارفع صورة لكل قسم أو قسم فرعي، وتظهر للعميل بدل 🛒</div>${SECTIONS.map(secBlock).join("")}</div>`;
 }
@@ -111,4 +136,3 @@ async function delSecImg(k){
  try{await db.doc("settings/main").update({["secImgs."+k]:firebase.firestore.FieldValue.delete()})}catch(e){alert("حصلت مشكلة")}
 }
 </script></body></html>
-
