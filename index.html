@@ -3,10 +3,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ماركت موسى"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#1f8f4e"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>سوبر ماركت موسى</title><link rel="icon" href="logo.png"><link rel="stylesheet" href="style.css">
+<style>
+#splash{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#splash img{width:180px;height:180px;object-fit:contain;animation:pop .6s ease-out}
+#splash.hide{opacity:0;pointer-events:none}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head><body>
+<div id="splash"><img src="apple-touch-icon.png" alt="سوبر ماركت موسى"></div>
 <header><img id="logo" src="logo.png" alt=""><h1>سوبر ماركت موسى</h1><button class="sec" onclick="show(user?'account':(ret='shop',am='login',as=1,'auth'))">👤</button><button class="sec" onclick="show('cart')">🛒 <span id="cc">0</span></button></header>
 <div class="tabs" id="tabs"></div><div id="sw" style="padding:0 16px 8px"><input id="q" type="search" placeholder="🔍 ابحث عن منتج..." oninput="sq=this.value;render()"></div><main id="app"></main>
 <div id="bar"><button onclick="show('cart')">عرض السلة · <span id="bt">0</span> ج</button></div>
@@ -17,4 +24,13 @@
 <script src="auth.js"></script>
 <script src="contact.js"></script>
 <script src="ads.js"></script>
+<script>
+(function(){
+ const s=document.getElementById("splash");
+ const start=Date.now();
+ const hide=()=>{const left=Math.max(0,1800-(Date.now()-start));setTimeout(()=>{s.classList.add("hide");setTimeout(()=>s.remove(),600)},left)};
+ window.addEventListener("load",hide);
+ setTimeout(hide,4000);
+})();
+</script>
 </body></html>
